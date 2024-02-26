@@ -26,7 +26,7 @@ public class ChatOrGameServer {
 
         public static void main(String[] args) {
             try {
-                Selector selector = Selector.open();
+                selector = Selector.open();
                 ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
                 serverSocketChannel.bind(new InetSocketAddress(PORT));
                 serverSocketChannel.configureBlocking(false);
