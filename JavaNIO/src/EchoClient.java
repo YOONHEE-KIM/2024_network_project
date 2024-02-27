@@ -36,11 +36,14 @@ public class EchoClient {
                 }
 
                 buffer.clear();
-                socketChannel.read(buffer);
+                int bytesRead = socketChannel.read(buffer);
+                if (bytesRead == -1) {
+                    System.out.println("서버와의 연결이 끊겼습니다.");
+                    break;
+                }
                 buffer.flip();
-                System.out.println("서버응답: " + new String(buffer.array()).trim());
+                System.out.println("서버응답: " + new String(buffer.array(), 0, bytesRead).trim());
             }
-
             socketChannel.close();
             scanner.close();
         } catch (IOException e) {

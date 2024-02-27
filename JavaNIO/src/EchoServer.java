@@ -7,10 +7,13 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Set;
-    /*
-    IOCP/epoll의 개념을 살려서 구현(비동기 및 논블로킹)
-    자바 NIO에서 구현하기 위해서는 Selector와 Channel을 사용하면 된다.
-     */
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+/*
+IOCP/epoll의 개념을 살려서 구현(비동기 및 논블로킹)
+자바 NIO에서 구현하기 위해서는 Selector와 Channel을 사용하면 된다.
+ */
 public class EchoServer {
     private static final int PORT = 9999;
     private static final int BUFFER_SIZE = 1024;
@@ -29,6 +32,8 @@ public class EchoServer {
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT); //클라이언트 연결 수락
 
             ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+            //스레드 풀 생성하는 코드 추가
+            ExecutorService executorService = Executors.newFixedThreadPool(10);
 
             while (true) {
                 selector.select();
@@ -40,32 +45,52 @@ public class EchoServer {
                     keyIterator.remove();
 
                     if (key.isAcceptable()) {
-                        ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
-                        SocketChannel clientChannel = serverChannel.accept(); //연결 수락
-                        clientChannel.configureBlocking(false);
-                        clientChannel.register(selector, SelectionKey.OP_READ); //읽기 등록
+                        handleAcceptableKey(key, selector);
                     } else if (key.isReadable()) { //읽기 이벤트 처리하는 부분
-                        SocketChannel clientChannel = (SocketChannel) key.channel();
-                        buffer.clear();
-                        int bytesRead = clientChannel.read(buffer);
-                        if (bytesRead == -1) { //클라이언트가 연결 끊은 경우(끝내기를 입력하거나 접속을 끊은 경우)
-                            clientChannel.close();
-                            key.cancel();
-                            continue;
-                        }
-                        buffer.flip();
-                        //클라이언트에 다시 데이터 보냄
-                        clientChannel.write(buffer);
-
-                        // 연결 유지하고 다시 읽기이벤트 대기
-                        key.interestOps(SelectionKey.OP_READ);
-                        //클라이언트의 메시지 서버에 출력
-                        System.out.println("클라이언트에서 보낸 메시지: " + new String(buffer.array()).trim());
+                        handleReadableKey(key, buffer, executorService);
                     }
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private static void handleAcceptableKey(SelectionKey key, Selector selector) throws IOException {
+        ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
+        SocketChannel clientChannel = serverChannel.accept();
+        clientChannel.configureBlocking(false);
+        clientChannel.register(selector, SelectionKey.OP_READ);
+    }
+    private static void handleReadableKey(SelectionKey key, ByteBuffer buffer, ExecutorService executorService) {
+        SocketChannel clientChannel = (SocketChannel) key.channel();
+        try {
+            buffer.clear();
+            int bytesRead = clientChannel.read(buffer);
+            if (bytesRead == -1) {
+                clientChannel.close();
+                key.cancel();
+                return;
+            }
+            buffer.flip();
+            executorService.submit(() -> {
+                try {
+                    //처리 시간 오래 걸리는 부분 스레드 풀에서 비동기처리
+                    clientChannel.write(buffer);
+                    System.out.println("클라이언트에서 보낸 메시지: " + new String(buffer.array()).trim());
+                    buffer.clear();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+            key.cancel();
+            try {
+                clientChannel.close();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
         }
     }
 }
