@@ -37,13 +37,15 @@ public class ChatGameServer {
         try {
             while (true) {
                 int readyChannels = selector.select(); // 준비된 채널 수 확인
+                //준비된 채널 없으면 대기
                 if (readyChannels == 0) {
                     continue;
                 }
-
+                //키  가져옴
                 Set<SelectionKey> selectedKeys = selector.selectedKeys();
                 Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
 
+                //선택 키들 반복문(이벤트 처리하는 기능)
                 while (keyIterator.hasNext()) {
                     SelectionKey key = keyIterator.next();
                     keyIterator.remove();
