@@ -22,8 +22,12 @@ public class socketServer {
 
                 clientCount++;
 
-                ClientHandler clientHandler = new ClientHandler(clientSocket, clientCount); // 각 클라이언트에 대해 새로운 스레드를 생성하여 통신을 처리함
-                clientHandler.start();
+                PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+                out.println("Welcome, you are client #" + clientCount + ".");
+
+                //각 클라이언트에 대해 새로운 스레드를 생성하여 통신을 처리함
+                // 각 클라이언트와의 통신을 처리하는 스레드 시작
+                new ClientHandler(clientSocket, clientCount).start();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -43,8 +47,6 @@ public class socketServer {
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream())); // 블로킹된 입력 스트림
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true) // 블로킹된 출력 스트림
             ) {
-                out.println("Welcome, you are client #" + clientNumber + ".");
-
                 String inputLine;
                 while ((inputLine = in.readLine()) != null) { // 클라이언트로부터의 메시지를 읽고 블로킹됨
                     System.out.println("Message from client #" + clientNumber + ": " + inputLine);

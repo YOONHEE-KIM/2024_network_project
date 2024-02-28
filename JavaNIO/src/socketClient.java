@@ -12,11 +12,18 @@ public class socketClient {
              BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in))) {
 
             System.out.println("Connected to server: " + serverAddress + ":" + serverPort);
+            String serverResponse = in.readLine().trim();
+            System.out.println("Server: " + serverResponse);
 
             String userInput;
             while ((userInput = stdIn.readLine()) != null) {
-                out.println(userInput);
-                System.out.println("Server: " + in.readLine());
+                out.println(userInput.trim());
+                //버퍼 비우고 데이터 전송
+                out.flush();
+
+                //클라이언트가 입력하면 즉시 에코 받도록
+                serverResponse = in.readLine().trim();
+                System.out.println("Server: " + serverResponse);
             }
         } catch (UnknownHostException e) {
             System.err.println("Unknown host: " + serverAddress);
