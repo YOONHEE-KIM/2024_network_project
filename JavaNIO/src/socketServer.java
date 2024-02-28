@@ -49,8 +49,8 @@ public class socketServer {
             ) {
                 String inputLine;
                 while ((inputLine = in.readLine()) != null) { // 클라이언트로부터의 메시지를 읽고 블로킹됨
-                    System.out.println("Message from client #" + clientNumber + ": " + inputLine);
-                    out.println("Server received: " + inputLine);
+                    System.out.println("client #" + clientNumber + ": " + inputLine);
+                    out.println(inputLine);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
